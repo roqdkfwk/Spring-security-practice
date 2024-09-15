@@ -1,11 +1,10 @@
-package com.example.SpringJWT.config;
+package com.example.springjwt.config;
 
-import com.example.SpringJWT.jwt.CustomLogoutFilter;
-import com.example.SpringJWT.jwt.JwtFilter;
-import com.example.SpringJWT.jwt.JwtUtil;
-import com.example.SpringJWT.jwt.LoginFilter;
-import com.example.SpringJWT.repository.RefreshRepository;
+import com.example.springjwt.jwt.JwtFilter;
+import com.example.springjwt.jwt.JwtUtil;
+import com.example.springjwt.jwt.LoginFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,7 +15,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -24,29 +22,19 @@ import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
+@AllArgsConstructor
 public class SecurityConfig {
 
-    //AuthenticationManager가 인자로 받을 AuthenticationConfiguraion 객체 생성자 주입
     private final AuthenticationConfiguration authenticationConfiguration;
     private final JwtUtil jwtUtil;
-    private final RefreshRepository refreshRepository;
 
-    public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, JwtUtil jwtUtil, RefreshRepository refreshRepository) {
-        this.authenticationConfiguration = authenticationConfiguration;
-        this.jwtUtil = jwtUtil;
-        this.refreshRepository = refreshRepository;
-    }
-
-    //AuthenticationManager Bean 등록
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-
         return configuration.getAuthenticationManager();
     }
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
-
         return new BCryptPasswordEncoder();
     }
 
@@ -54,29 +42,31 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .cors((cors) -> cors.configurationSource(new CorsConfigurationSource() {
-                    @Override
-                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                .cors((cors) -> cors
+                        .configurationSource(new CorsConfigurationSource() {
+                            @Override
+                            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                                CorsConfiguration corsConfiguration = new CorsConfiguration();
+                                // 프론트엔드 서버 허용
+                                corsConfiguration.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
+                                // 모든 메소드 허용
+                                corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
+                                corsConfiguration.setAllowCredentials(true);
+                                corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
+                                corsConfiguration.setMaxAge(3600L);
+                                corsConfiguration.setExposedHeaders(Collections.singletonList("Authorization"));
 
-                        CorsConfiguration configuration = new CorsConfiguration();
-
-                        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
-                        configuration.setAllowedMethods(Collections.singletonList("*"));
-                        configuration.setAllowCredentials(true);
-                        configuration.setAllowedHeaders(Collections.singletonList("*"));
-                        configuration.setMaxAge(3600L);
-
-                        configuration.setExposedHeaders(Collections.singletonList("Authorization"));
-
-                        return configuration;
-                    }
-                }));
+                                return corsConfiguration;
+                            }
+                        }));
 
         // csrf disable
+        // 세션 방식에서는 세션이 고정되어 있으므로 csrf 공격에 방어해야한다.
+        // JWT 방식에서는 stateless 상태로 관리하기 때문에 괜찮다.
         http
                 .csrf((auth) -> auth.disable());
 
-        // Form 로그인 방식 disable
+        // form 로그인 방식 disable
         http
                 .formLogin((auth) -> auth.disable());
 
@@ -84,31 +74,21 @@ public class SecurityConfig {
         http
                 .httpBasic((auth) -> auth.disable());
 
-        // 경로별 인가 작업
         http
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/login", "/", "/join",
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/api-docs/**",
-                                "/reissue").permitAll()
+                        .requestMatchers("/login", "/", "/join").permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated());
 
-        // 만들었던 JwtFilter, LoginFilter를 등록
+        // JwtFilter를 LoginFilter 앞에 등록
         http
                 .addFilterBefore(new JwtFilter(jwtUtil), LoginFilter.class);
 
-        // UsernamePasswordAuthenticationFilter를 대체할 필터를 등록할 것이므로 addFilterAt()을 사용한다
+        // 새로 등록할 필터, 필터를 등록할 위치
         http
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil, refreshRepository), UsernamePasswordAuthenticationFilter.class);
+                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class);
 
-        // custom 로그아웃 필터는 기본적으로 스프링 시큐리티에 활성화 되어 있는 로그아웃 필터의 앞에 등록
-        http
-                .addFilterBefore(new CustomLogoutFilter(jwtUtil, refreshRepository), LogoutFilter.class);
-
-        // 세션 설정
+        // 세션 설정, JWT방식에서는 STATELESS 상태로 만들어줘야 한다.
         http
                 .sessionManagement((session) -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));

@@ -1,9 +1,10 @@
-package com.example.SpringJWT.dto;
+package com.example.springjwt.dto;
 
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter @Setter
+@Getter
+@Setter
 public class JoinDTO {
 
     private String username;
