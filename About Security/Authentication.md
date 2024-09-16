@@ -61,17 +61,17 @@ Spring Security는 `Authentication` 인터페이스의 여러 구현체를 제�
 
 ```java
 public class AuthExample {
-		public static void main(String[] args) {
-				// 사용자 이름과 비밀번호를 사용하여 UsernamePasswordAuthenticationToken 생성
-				String username = "user";
-				String password = "password;
-				UsernamePasswordAuthenticationToken authToken
-						= new UsernamePasswordAuthenticationToken(username, password);
+	public static void main(String[] args) {
+		// 사용자 이름과 비밀번호를 사용하여 UsernamePasswordAuthenticationToken 생성
+		String username = "user";
+		String password = "password;
+		UsernamePasswordAuthenticationToken authToken
+				= new UsernamePasswordAuthenticationToken(username, password);
 						
-				// 이후 authToken을 AuthenticationManager에 전달하여 인증을 처리한다.
-				// AuthenticationManager authManager = ...;
-				// Authentication auth = authManager.authenticate(authToken);
-		}
+		// 이후 authToken을 AuthenticationManager에 전달하여 인증을 처리한다.
+		// AuthenticationManager authManager = ...;
+		// Authentication auth = authManager.authenticate(authToken);
+	}
 }
 ```
 
@@ -87,16 +87,16 @@ public class AuthExample {
 
 ```java
 public class SecurityContextExample {
-		public static void main(String[] args) {
-				// SecurityContextHolder에서 현재 인증된 사용자의 Authentication 객체 가져오기
-				Authentication authentication = SecurityContextHolder
-																					.getContext()
-																					.getAuthentication();
-				
-				// Authentication 객체에서 사용자 이름과 권한 정보 가져오기
-				String username = authentication.getName();
-				Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();		
-		}
+	public static void main(String[] args) {
+		// SecurityContextHolder에서 현재 인증된 사용자의 Authentication 객체 가져오기
+		Authentication authentication = SecurityContextHolder
+						.getContext()
+						.getAuthentication();
+			
+		// Authentication 객체에서 사용자 이름과 권한 정보 가져오기
+		String username = authentication.getName();
+		Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();		
+	}
 }
 
 username : 현재 인증된 사용자 이름, 일반적으로 사용자의 식별자이다.
